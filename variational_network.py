@@ -81,6 +81,50 @@ class VariationalNetwork(nn.Module):
 
 
         return reg_term
+
+    def reg_tv(self, x):
+        """
+        Isotropic total variation regularizer.
+
+        Args:
+            x: input tensor of shape ``(T, H, W)``
+
+        Returns:
+            reg_term: divergence of normalized gradients with the same shape as ``x``
+        """
+
+        grad_x = x[:, :, 1:] - x[:, :, :-1]
+        grad_y = x[:, 1:, :] - x[:, :-1, :]
+
+        grad_x = F.pad(grad_x, (0, 1), mode="replicate")
+        grad_y = F.pad(grad_y, (0, 0, 0, 1), mode="replicate")
+
+        magnitude = torch.sqrt(grad_x ** 2 + grad_y ** 2 + 1e-8)
+        grad_x_norm = grad_x / magnitude
+        grad_y_norm = grad_y / magnitude
+
+        div_x = grad_x_norm - F.pad(grad_x_norm[:, :, :-1], (1, 0), mode="replicate")
+        div_y = grad_y_norm - F.pad(grad_y_norm[:, :-1, :], (0, 0, 1, 0), mode="replicate")
+
+        return div_x + div_y
+
+    def reg_tikhonov(self, x):
+        """
+        Tikhonov regularizer implemented via a discrete Laplacian.
+
+        Args:
+            x: input tensor of shape ``(T, H, W)``
+
+        Returns:
+            reg_term: Laplacian of ``x`` with the same shape as ``x``
+        """
+
+        kernel = torch.tensor([[0., -1., 0.],
+                              [-1., 4., -1.],
+                              [0., -1., 0.]], device=x.device, dtype=x.dtype)
+        kernel = kernel.view(1, 1, 3, 3)
+        reg_term = F.conv2d(x.unsqueeze(1), kernel, padding=1)
+        return reg_term.squeeze(1)
     
     
 
