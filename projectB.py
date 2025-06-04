@@ -112,5 +112,48 @@ def train_vn(num_epochs=NUM_EPOCHS, lr=LR, batch_size=BATCH_SIZE):
     return vn, losses
 
 
+def save_trained_model(model, directory="models", filename=None, **hyperparams):
+    """Save a trained model to ``directory/filename``.
+
+    The filename will encode given hyperparameters if ``filename`` is ``None``.
+
+    Args:
+        model (torch.nn.Module): trained variational network
+        directory (str): directory to store the model file
+        filename (str, optional): file name for the saved state dict.  If not
+            provided, a name is constructed from ``hyperparams``.
+        **hyperparams: keyword arguments describing the hyperparameters used
+            during training.
+    """
+    import os
+
+    def _sanitize(val):
+        if isinstance(val, float):
+            s = f"{val:.0e}" if val < 1e-3 or val >= 1e3 else f"{val:g}"
+            s = s.replace("+", "")
+        else:
+            s = str(val)
+        return s.replace(".", "p")
+
+    os.makedirs(directory, exist_ok=True)
+
+    if filename is None:
+        parts = [f"{k}{_sanitize(v)}" for k, v in sorted(hyperparams.items())]
+        filename = "vn_" + "_".join(parts) + ".pth"
+
+    path = os.path.join(directory, filename)
+    torch.save(model.state_dict(), path)
+    print(f"Model saved to {path}")
+
+
 if __name__ == "__main__":
-    train_vn()
+    model, _ = train_vn()
+    save_trained_model(
+        model,
+        n_layers=N_LAYERS,
+        n_filters=N_FILTERS,
+        filter_size=FILTER_SZ,
+        num_epochs=NUM_EPOCHS,
+        lr=LR,
+        batch_size=BATCH_SIZE,
+    )
