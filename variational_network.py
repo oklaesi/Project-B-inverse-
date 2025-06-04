@@ -33,9 +33,15 @@ class VariationalNetwork(nn.Module):
         # Normalize z to grid range [0, 1.5]
         z_clamped = x.clamp(min=0, max=1.5)
 
-        # Linearly interpolate
-        activated = torch.interp(z_clamped, grid, values)
-        return activated
+        idx = torch.bucketize(z_clamped.reshape(-1), grid)
+        idx = torch.clamp(idx, 1, grid.numel() - 1)
+        x0 = grid[idx - 1]
+        x1 = grid[idx]
+        y0 = values[idx - 1]
+        y1 = values[idx]
+        slope = (y1 - y0) / (x1 - x0)
+        activated = y0 + slope * (z_clamped.reshape(-1) - x0)
+        return activated.reshape(z_clamped.shape)
     
         
     def reg_vtv(self, x, k):
