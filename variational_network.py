@@ -151,7 +151,7 @@ class VariationalNetwork(nn.Module):
 
         for k in range(self.n_layers):
             
-            g = self.compute_g(x0, s, mask, i2k, k2i, k)
+            g = self.compute_g(x, s, mask, i2k, k2i, k)
             m = self.update_momentum(m, g, k)
             x = self.update_x(x, m)
 
