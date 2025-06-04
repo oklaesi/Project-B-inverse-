@@ -4,6 +4,7 @@ import scipy.io
 import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
+import matplotlib.pyplot as plt
 
 #─────────────────────────────────────────────────────────────────────────────
 # Hyperparameters
@@ -67,3 +68,49 @@ def create_dataloaders(batch_size=BATCH_SIZE, train_split=TRAIN_SPLIT):
     return train_loader, val_loader
 
 
+
+
+def train_vn(num_epochs=NUM_EPOCHS, lr=LR, batch_size=BATCH_SIZE):
+    """Train a variational network on the heart dataset and plot the loss."""
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    train_loader, _ = create_dataloaders(batch_size=batch_size)
+
+    vn = VariationalNetwork(n_layers=N_LAYERS, n_filters=N_FILTERS,
+                            filter_size=FILTER_SZ).to(device)
+    optim = torch.optim.Adam(vn.parameters(), lr=lr)
+
+    losses = []
+    for epoch in range(num_epochs):
+        vn.train()
+        running = 0.0
+        for gt, s, m in train_loader:
+            gt = gt.to(device)
+            s_complex = complex_from_tensor(s).to(device)
+            m = m.permute(1, 2, 0).to(device)
+
+            x0 = k2i_torch(s_complex)
+            pred = vn(x0, s_complex, i2k_torch, k2i_torch, m)
+
+            loss = torch.mean(torch.abs(torch.abs(pred) - torch.abs(gt)))
+            optim.zero_grad()
+            loss.backward()
+            optim.step()
+            running += loss.item()
+
+        epoch_loss = running / len(train_loader)
+        losses.append(epoch_loss)
+        if (epoch + 1) % PRINT_EVERY == 0:
+            print(f"Epoch {epoch+1}/{num_epochs} - Loss: {epoch_loss:.6f}")
+
+    import matplotlib.pyplot as plt
+    plt.figure()
+    plt.plot(losses)
+    plt.xlabel('Epoch')
+    plt.ylabel('L1 Loss')
+    plt.title('Training Loss')
+    plt.show()
+    return vn, losses
+
+
+if __name__ == "__main__":
+    train_vn()
