@@ -50,10 +50,10 @@ class HeartDataset(Dataset):
                                                     sigma=self.noise_std)
 
         img_t = torch.from_numpy(img.transpose(2, 0, 1))  # (T, H, W)
-        real = np.real(s).transpose(2, 0, 1)
-        imag = np.imag(s).transpose(2, 0, 1)
+        real = np.real(s).astype(np.float32).transpose(2, 0, 1)
+        imag = np.imag(s).astype(np.float32).transpose(2, 0, 1)
         s_t = torch.from_numpy(np.stack([real, imag], axis=0))  # (2, T, H, W)
-        mask_t = torch.from_numpy(mask.transpose(2, 0, 1))
+        mask_t = torch.from_numpy(mask.transpose(2, 0, 1).astype(np.float32))
         return img_t, s_t, mask_t
 
 
