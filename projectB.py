@@ -5,6 +5,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 import matplotlib.pyplot as plt
+import os
 
 #─────────────────────────────────────────────────────────────────────────────
 # Hyperparameters
@@ -102,7 +103,6 @@ def train_vn(num_epochs=NUM_EPOCHS, lr=LR, batch_size=BATCH_SIZE):
         if (epoch + 1) % PRINT_EVERY == 0:
             print(f"Epoch {epoch+1}/{num_epochs} - Loss: {epoch_loss:.6f}")
 
-    import matplotlib.pyplot as plt
     plt.figure()
     plt.plot(losses)
     plt.xlabel('Epoch')
@@ -125,7 +125,6 @@ def save_trained_model(model, directory="models", filename=None, **hyperparams):
         **hyperparams: keyword arguments describing the hyperparameters used
             during training.
     """
-    import os
 
     def _sanitize(val):
         if isinstance(val, float):
