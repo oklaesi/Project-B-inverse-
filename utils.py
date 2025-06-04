@@ -126,3 +126,29 @@ def compute_noisy_undersampled_measurements(img, mask, sigma=0.01):
     s = mask * kspace_noisy
 
     return s
+
+
+def complex_from_tensor(t):
+    """Convert (2, T, H, W) real tensor to complex tensor of shape (H, W, T)."""
+    return torch.view_as_complex(t.permute(2, 3, 1, 0).contiguous())
+
+
+def tensor_from_complex(c):
+    """Convert complex tensor (H, W, T) to real representation (2, T, H, W)."""
+    return torch.view_as_real(c).permute(3, 2, 0, 1)
+
+
+def i2k_torch(x):
+    """Fourier transform from image (T,H,W) to k-space (H,W,T)."""
+    x_c = x.permute(1, 2, 0)  # (H, W, T)
+    k = torch.fft.fftn(torch.fft.ifftshift(x_c, dim=(0, 1)), dim=(0, 1), norm='ortho')
+    k = torch.fft.fftshift(k, dim=(0, 1))
+    return k
+
+
+def k2i_torch(k):
+    """Inverse Fourier transform from k-space (H,W,T) to image (T,H,W)."""
+    img = torch.fft.ifftn(torch.fft.ifftshift(k, dim=(0, 1)), dim=(0, 1), norm='ortho')
+    img = torch.fft.fftshift(img, dim=(0, 1))
+    img = img.permute(2, 0, 1).real
+    return img
