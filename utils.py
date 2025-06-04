@@ -129,26 +129,79 @@ def compute_noisy_undersampled_measurements(img, mask, sigma=0.01):
 
 
 def complex_from_tensor(t):
-    """Convert (2, T, H, W) real tensor to complex tensor of shape (H, W, T)."""
-    return torch.view_as_complex(t.permute(2, 3, 1, 0).contiguous())
+    """Convert a real-valued tensor to a complex-valued tensor.
+
+    The input is expected to have the real/imaginary components stacked in
+    the first dimension, i.e. ``(2, T, H, W)`` or ``(B, 2, T, H, W)`` where ``B``
+    denotes an optional batch dimension.  The returned tensor has the complex
+    dimension removed and the time dimension moved to the end resulting in
+    shapes ``(H, W, T)`` or ``(B, H, W, T)`` respectively.
+    """
+
+    if t.ndim == 4:
+        # (2, T, H, W) -> (H, W, T)
+        return torch.view_as_complex(t.permute(2, 3, 1, 0).contiguous())
+    elif t.ndim == 5:
+        # (B, 2, T, H, W) -> (B, H, W, T)
+        return torch.view_as_complex(t.permute(0, 3, 4, 2, 1).contiguous())
+    else:
+        raise ValueError(
+            "Tensor must have shape (2, T, H, W) or (B, 2, T, H, W)")
 
 
 def tensor_from_complex(c):
-    """Convert complex tensor (H, W, T) to real representation (2, T, H, W)."""
-    return torch.view_as_real(c).permute(3, 2, 0, 1)
+    """Convert complex tensor to a real-valued representation.
+
+    Accepts a tensor of shape ``(H, W, T)`` or ``(B, H, W, T)`` and returns a
+    real tensor with the complex dimension stacked in the first position,
+    resulting in shapes ``(2, T, H, W)`` or ``(B, 2, T, H, W)`` respectively.
+    """
+
+    real = torch.view_as_real(c)
+    if c.ndim == 3:
+        # (H, W, T, 2) -> (2, T, H, W)
+        return real.permute(3, 2, 0, 1)
+    elif c.ndim == 4:
+        # (B, H, W, T, 2) -> (B, 2, T, H, W)
+        return real.permute(0, 4, 3, 1, 2)
+    else:
+        raise ValueError(
+            "Complex tensor must have shape (H, W, T) or (B, H, W, T)")
 
 
 def i2k_torch(x):
-    """Fourier transform from image (T,H,W) to k-space (H,W,T)."""
-    x_c = x.permute(1, 2, 0)  # (H, W, T)
-    k = torch.fft.fftn(torch.fft.ifftshift(x_c, dim=(0, 1)), dim=(0, 1), norm='ortho')
-    k = torch.fft.fftshift(k, dim=(0, 1))
+    """Fourier transform from image to k-space.
+
+    The function operates on tensors with shape ``(..., T, H, W)`` where the
+    last three dimensions correspond to time, height and width.  The Fourier
+    transform is applied over the spatial dimensions resulting in an output of
+    shape ``(..., H, W, T)``.
+    """
+
+    # Move the time dimension to the end so that H and W are the last two dims
+    x_c = torch.movedim(x, -3, -1)
+    k = torch.fft.fftn(
+        torch.fft.ifftshift(x_c, dim=(-3, -2)),
+        dim=(-3, -2),
+        norm="ortho",
+    )
+    k = torch.fft.fftshift(k, dim=(-3, -2))
     return k
 
 
 def k2i_torch(k):
-    """Inverse Fourier transform from k-space (H,W,T) to image (T,H,W)."""
-    img = torch.fft.ifftn(torch.fft.ifftshift(k, dim=(0, 1)), dim=(0, 1), norm='ortho')
-    img = torch.fft.fftshift(img, dim=(0, 1))
-    img = img.permute(2, 0, 1).real
+    """Inverse Fourier transform from k-space to image.
+
+    Accepts tensors with shape ``(..., H, W, T)`` and returns real-valued image
+    tensors with shape ``(..., T, H, W)``.  The inverse transform is performed
+    over the spatial dimensions.
+    """
+
+    img = torch.fft.ifftn(
+        torch.fft.ifftshift(k, dim=(-3, -2)),
+        dim=(-3, -2),
+        norm="ortho",
+    )
+    img = torch.fft.fftshift(img, dim=(-3, -2))
+    img = torch.movedim(img, -1, -3).real
     return img

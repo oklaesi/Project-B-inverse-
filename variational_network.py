@@ -39,45 +39,69 @@ class VariationalNetwork(nn.Module):
     
         
     def reg_vtv(self, x, k):
+        """Compute the Vectorial Total Variation regularizer.
+
+        The method supports inputs of shape ``(T, H, W)`` or ``(B, T, H, W)``.
+        In the batched case the computation is performed independently for each
+        element in the batch.
         """
-        Regularization term for the k-th layer.
-        Args:
-            x: (T, H, W)
-            k: current layer index
-        Returns:
-            reg_term: (T, H, W)
-        """
-        T, H, W = x.shape
-        reg_term = torch.zeros_like(x)
+
+        batched = x.dim() == 4
+        if batched:
+            B, T, H, W = x.shape
+            reg_term = torch.zeros_like(x)
+            x_reshaped = x.reshape(B * T, 1, H, W)
+        else:
+            T, H, W = x.shape
+            reg_term = torch.zeros_like(x)
+            x_reshaped = x.unsqueeze(1)  # (T,1,H,W)
 
         for i in range(self.filters.shape[1]):
             # Get the (k,i)-th filter
             filt = self.filters[k, i, :, :].unsqueeze(0).unsqueeze(0)  # (1,1,f,f)
 
             # Convolve each frame (batch-wise convolution)
-            filtered_frames = F.conv2d(
-                x.unsqueeze(1),  # (T,1,H,W)
-                filt, padding='same', groups=1
-            ).squeeze(1)  # (T, H, W)
+            filtered = F.conv2d(
+                x_reshaped,
+                filt,
+                padding="same",
+                groups=1,
+            )
+            if batched:
+                filtered_frames = filtered.view(B, T, H, W)
+            else:
+                filtered_frames = filtered.squeeze(1)  # (T,H,W)
 
             # Compute joint gradient magnitude across time
-            magnitude = (filtered_frames**2).sum(dim=0) / T  # (H, W)
-            magnitude = torch.sqrt(magnitude + 1e-8)  # add small constant for stability
+            if batched:
+                magnitude = (filtered_frames ** 2).sum(dim=1) / T  # (B,H,W)
+            else:
+                magnitude = (filtered_frames ** 2).sum(dim=0) / T  # (H,W)
+            magnitude = torch.sqrt(magnitude + 1e-8)
 
             # Apply learnable activation function
             phi = self.apply_activation(magnitude, k, i)  # (H, W)
 
             # Transpose operation: convolution with flipped filter
             flipped_filt = torch.flip(filt, dims=[2, 3])
-            
-            for t in range(T):
-                tmp = filtered_frames[t] * phi  # (H, W)
-                tmp_conv = F.conv2d(
-                    tmp.unsqueeze(0).unsqueeze(0),  # (1,1,H,W)
-                    flipped_filt, padding='same'
-                ).squeeze(0).squeeze(0)  # (H, W)
 
-                reg_term[t] += tmp_conv
+            for t in range(T):
+                if batched:
+                    tmp = filtered_frames[:, t] * phi  # (B,H,W)
+                    tmp_conv = F.conv2d(
+                        tmp.unsqueeze(1),
+                        flipped_filt,
+                        padding="same",
+                    ).squeeze(1)  # (B,H,W)
+                    reg_term[:, t] += tmp_conv
+                else:
+                    tmp = filtered_frames[t] * phi  # (H,W)
+                    tmp_conv = F.conv2d(
+                        tmp.unsqueeze(0).unsqueeze(0),
+                        flipped_filt,
+                        padding="same",
+                    ).squeeze(0).squeeze(0)
+                    reg_term[t] += tmp_conv
 
 
         return reg_term
