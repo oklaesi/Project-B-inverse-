@@ -86,7 +86,7 @@ def train_vn(num_epochs=NUM_EPOCHS, lr=LR, batch_size=BATCH_SIZE):
         for gt, s, m in train_loader:
             gt = gt.to(device)
             s_complex = complex_from_tensor(s).to(device)
-            m = m.permute(1, 2, 0).to(device)
+            m = m.permute(0, 2, 3, 1).to(device)
 
             x0 = k2i_torch(s_complex)
             pred = vn(x0, s_complex, i2k_torch, k2i_torch, m)
