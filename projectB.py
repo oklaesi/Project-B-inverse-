@@ -19,7 +19,7 @@ MASK_CENTER_RADIUS = 8
 
 BATCH_SIZE   = 4
 NUM_EPOCHS   = 50
-LR           = 1e-4
+LR           = 1e-2
 PRINT_EVERY  = 10
 TRAIN_SPLIT  = 0.8
 #─────────────────────────────────────────────────────────────────────────────
