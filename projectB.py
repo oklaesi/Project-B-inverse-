@@ -112,6 +112,47 @@ def train_vn(num_epochs=NUM_EPOCHS, lr=LR, batch_size=BATCH_SIZE):
     return vn, losses
 
 
+def validate_vn(model, val_loader=None, batch_size=BATCH_SIZE):
+    """Validate a trained variational network on the held-out set.
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        The trained variational network.
+    val_loader : DataLoader, optional
+        Validation dataloader.  If ``None``, a loader is created using
+        ``create_dataloaders`` with ``batch_size``.
+    batch_size : int
+        Batch size to use when constructing the dataloader.
+
+    Returns
+    -------
+    float
+        The average L1 validation loss.
+    """
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    if val_loader is None:
+        _, val_loader = create_dataloaders(batch_size=batch_size)
+
+    model = model.to(device)
+    model.eval()
+    running = 0.0
+    with torch.no_grad():
+        for gt, s, m in val_loader:
+            gt = gt.to(device)
+            s_complex = complex_from_tensor(s).to(device)
+            m = m.permute(0, 2, 3, 1).to(device)
+
+            x0 = k2i_torch(s_complex)
+            pred = model(x0, s_complex, i2k_torch, k2i_torch, m)
+
+            loss = torch.mean(torch.abs(torch.abs(pred) - torch.abs(gt)))
+            running += loss.item()
+
+    return running / len(val_loader)
+
+
 def save_trained_model(model, directory="models", filename=None, **hyperparams):
     """Save a trained model to ``directory/filename``.
 
@@ -147,6 +188,12 @@ def save_trained_model(model, directory="models", filename=None, **hyperparams):
 
 if __name__ == "__main__":
     model, _ = train_vn()
+
+    # Evaluate the trained model on the validation set
+    _, val_loader = create_dataloaders(batch_size=BATCH_SIZE)
+    val_loss = validate_vn(model, val_loader)
+    print(f"Validation loss: {val_loss:.6f}")
+
     save_trained_model(
         model,
         n_layers=N_LAYERS,
