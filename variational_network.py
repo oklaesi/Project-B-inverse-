@@ -218,15 +218,21 @@ class VariationalNetwork(nn.Module):
         return x - m_next
 
 
-    def forward(self, x0, s, i2k, k2i, mask):
-        
+    def forward(self, x0, s, i2k, k2i, mask, return_intermediate=False):
+
         x = x0.clone()
         m = torch.zeros_like(x0)  # Initialize momentum
 
+        xs = []
         for k in range(self.n_layers):
-            
+
             g = self.compute_g(x, s, mask, i2k, k2i, k)
             m = self.update_momentum(m, g, k)
             x = self.update_x(x, m)
 
+            if return_intermediate:
+                xs.append(x.clone())
+
+        if return_intermediate:
+            return x, xs
         return x
