@@ -13,10 +13,13 @@ N_LAYERS   = 8
 N_FILTERS  = 5
 FILTER_SZ  = 3
 
+# Undersampling and noise parameters
 NOISE_STD          = 0.01
 ACCEL_RATE         = 4
-MASK_CENTER_RADIUS = 8
+CENTER_FRACTION    = 0.1
+SIGMA             = 10  
 
+# Training parameters
 BATCH_SIZE   = 4
 NUM_EPOCHS   = 20
 LR           = 1e-2
@@ -24,6 +27,8 @@ PRINT_EVERY  = 10
 TRAIN_SPLIT  = 0.8
 DS_TAU       = 0.1
 SHOW_VAL_IMAGES = True
+
+
 #─────────────────────────────────────────────────────────────────────────────
 
 
@@ -32,7 +37,7 @@ class HeartDataset(Dataset):
     the 2dt_heart.mat file."""
 
     def __init__(self, mat_path="2dt_heart.mat", noise_std=NOISE_STD,
-                 acceleration=ACCEL_RATE, center_fraction=0.1, sigma=10):
+                 acceleration=ACCEL_RATE, center_fraction=CENTER_FRACTION, sigma=SIGMA):
         super().__init__()
         data = scipy.io.loadmat(mat_path)
         self.imgs = data["imgs"].astype(np.float32)  # (H, W, T, N)
