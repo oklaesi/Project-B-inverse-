@@ -22,6 +22,7 @@ NUM_EPOCHS   = 50
 LR           = 1e-2
 PRINT_EVERY  = 10
 TRAIN_SPLIT  = 0.8
+DS_TAU       = 0.1
 #─────────────────────────────────────────────────────────────────────────────
 
 
@@ -94,13 +95,21 @@ def train_vn(num_epochs=NUM_EPOCHS, lr=LR, batch_size=BATCH_SIZE):
             m = m.permute(0, 2, 3, 1).to(device)
 
             x0 = k2i_torch(s_complex)
-            pred = vn(x0, s_complex, i2k_torch, k2i_torch, m)
+            pred, preds_all = vn(x0, s_complex, i2k_torch, k2i_torch, m,
+                                 return_intermediate=True)
 
-            loss = torch.mean(torch.abs(torch.abs(pred) - torch.abs(gt)))
+            plot_loss = torch.mean(torch.abs(torch.abs(pred) - torch.abs(gt)))
+
+            K = len(preds_all)
+            ds_loss = 0.0
+            for k, x_k in enumerate(preds_all, start=1):
+                weight = torch.exp(-DS_TAU * (K - k))
+                ds_loss = ds_loss + weight * F.mse_loss(x_k, gt)
+
             optim.zero_grad()
-            loss.backward()
+            ds_loss.backward()
             optim.step()
-            running += loss.item()
+            running += plot_loss.item()
 
         epoch_loss = running / len(train_loader)
         losses.append(epoch_loss)
