@@ -1,5 +1,6 @@
 from variational_network import *
 from utils import *
+import utils
 import scipy.io
 import numpy as np
 import torch
@@ -229,6 +230,40 @@ def save_trained_model(model, directory="models", filename=None, **hyperparams):
     path = os.path.join(directory, filename)
     torch.save(model.state_dict(), path)
     print(f"Model saved to {path}")
+
+
+def find_optimal_vn_params(param_grid=None, max_trials=None):
+    """Run a small hyperparameter search for the variational network.
+
+    Parameters
+    ----------
+    param_grid : dict, optional
+        Grid of hyperparameters to explore.  If ``None``, a default grid is
+        used.
+    max_trials : int, optional
+        Maximum number of parameter combinations to try.
+
+    Returns
+    -------
+    dict
+        Best hyperparameters found.
+    float
+        Corresponding validation loss.
+    """
+
+    if param_grid is None:
+        param_grid = {
+            "n_layers": [6, 8],
+            "lr": [1e-3, 1e-2],
+            "batch_size": [4],
+            "num_epochs": [10],
+        }
+
+    best_params, best_loss = utils.find_optimal_vn_params(
+        param_grid, max_trials=max_trials
+    )
+    print(f"Best parameters: {best_params}, best validation loss: {best_loss:.6f}")
+    return best_params, best_loss
 
 
 if __name__ == "__main__":
