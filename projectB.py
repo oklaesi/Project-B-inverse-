@@ -23,6 +23,7 @@ LR           = 1e-2
 PRINT_EVERY  = 10
 TRAIN_SPLIT  = 0.8
 DS_TAU       = 0.1
+SHOW_VAL_IMAGES = False
 #─────────────────────────────────────────────────────────────────────────────
 
 
@@ -125,7 +126,8 @@ def train_vn(num_epochs=NUM_EPOCHS, lr=LR, batch_size=BATCH_SIZE):
     return vn, losses
 
 
-def validate_vn(model, val_loader=None, batch_size=BATCH_SIZE):
+def validate_vn(model, val_loader=None, batch_size=BATCH_SIZE,
+                display_examples=False, num_examples=3):
     """Validate a trained variational network on the held-out set.
 
     Parameters
@@ -137,6 +139,12 @@ def validate_vn(model, val_loader=None, batch_size=BATCH_SIZE):
         ``create_dataloaders`` with ``batch_size``.
     batch_size : int
         Batch size to use when constructing the dataloader.
+    display_examples : bool, optional
+        If ``True``, display ``num_examples`` pairs of ground truth and
+        reconstructed images.
+    num_examples : int, optional
+        Number of example pairs to display when ``display_examples`` is
+        ``True``.
 
     Returns
     -------
@@ -151,6 +159,7 @@ def validate_vn(model, val_loader=None, batch_size=BATCH_SIZE):
     model = model.to(device)
     model.eval()
     running = 0.0
+    examples = []
     with torch.no_grad():
         for gt, s, m in val_loader:
             gt = gt.to(device)
@@ -162,6 +171,29 @@ def validate_vn(model, val_loader=None, batch_size=BATCH_SIZE):
 
             loss = torch.mean(torch.abs(torch.abs(pred) - torch.abs(gt)))
             running += loss.item()
+
+            if display_examples and len(examples) < num_examples:
+                for j in range(gt.shape[0]):
+                    if len(examples) >= num_examples:
+                        break
+                    examples.append((gt[j].cpu(), pred[j].cpu()))
+
+    if display_examples and examples:
+        n = len(examples)
+        fig, axes = plt.subplots(n, 2, figsize=(6, 3 * n))
+        if n == 1:
+            axes = np.array(axes).reshape(1, -1)
+        for i, (gt_ex, pred_ex) in enumerate(examples):
+            gt_img = torch.abs(gt_ex[0]).numpy()
+            pred_img = torch.abs(pred_ex[0]).numpy()
+            axes[i, 0].imshow(gt_img, cmap="gray")
+            axes[i, 0].set_title("Ground Truth")
+            axes[i, 0].axis("off")
+            axes[i, 1].imshow(pred_img, cmap="gray")
+            axes[i, 1].set_title("Reconstruction")
+            axes[i, 1].axis("off")
+        plt.tight_layout()
+        plt.show()
 
     return running / len(val_loader)
 
@@ -204,7 +236,12 @@ if __name__ == "__main__":
 
     # Evaluate the trained model on the validation set
     _, val_loader = create_dataloaders(batch_size=BATCH_SIZE)
-    val_loss = validate_vn(model, val_loader)
+    val_loss = validate_vn(
+        model,
+        val_loader,
+        display_examples=SHOW_VAL_IMAGES,
+        num_examples=3,
+    )
     print(f"Validation loss: {val_loss:.6f}")
 
     """
