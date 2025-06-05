@@ -205,3 +205,75 @@ def k2i_torch(k):
     img = torch.fft.fftshift(img, dim=(-3, -2))
     img = torch.movedim(img, -1, -3).real
     return img
+
+
+def find_optimal_vn_params(param_grid, max_trials=None):
+    """Search over hyperparameters for the variational network.
+
+    Parameters
+    ----------
+    param_grid : dict
+        Dictionary where keys are hyperparameter names and values are lists of
+        possible values.  Valid keys correspond to the arguments of
+        ``projectB.train_vn`` (e.g. ``num_epochs``, ``lr`` and ``batch_size``)
+        as well as ``n_layers``, ``n_filters`` and ``filter_size`` which map to
+        the global variables in ``projectB``.
+    max_trials : int, optional
+        Maximum number of parameter combinations to try.  If ``None`` all
+        combinations are explored.
+
+    Returns
+    -------
+    dict
+        Parameter dictionary that achieved the lowest validation loss.
+    float
+        Best validation loss achieved.
+    """
+
+    from itertools import product
+
+    import projectB  # imported locally to avoid circular dependency
+
+    names = list(param_grid.keys())
+    values = [v if isinstance(v, (list, tuple)) else [v] for v in param_grid.values()]
+    combos = list(product(*values))
+    if max_trials is not None:
+        combos = combos[:max_trials]
+
+    best_loss = float("inf")
+    best_params = None
+
+    total = len(combos)
+    for i, combo in enumerate(combos, start=1):
+        params = dict(zip(names, combo))
+
+        # Override architecture hyperparameters if provided
+        if "n_layers" in params:
+            projectB.N_LAYERS = params["n_layers"]
+        if "n_filters" in params:
+            projectB.N_FILTERS = params["n_filters"]
+        if "filter_size" in params:
+            projectB.FILTER_SZ = params["filter_size"]
+
+        num_epochs = params.get("num_epochs", projectB.NUM_EPOCHS)
+        lr = params.get("lr", projectB.LR)
+        batch_size = params.get("batch_size", projectB.BATCH_SIZE)
+
+        print(f"Trial {i}/{total}: {params}")
+        model, train_losses = projectB.train_vn(
+            num_epochs=num_epochs, lr=lr, batch_size=batch_size
+        )
+
+        _, val_loader = projectB.create_dataloaders(batch_size=batch_size)
+        val_loss = projectB.validate_vn(model, val_loader)
+        train_loss = train_losses[-1] if train_losses else float("nan")
+        print(
+            f"Params: {params} -> Train loss: {train_loss:.6f}, "
+            f"Val loss: {val_loss:.6f}"
+        )
+
+        if val_loss < best_loss:
+            best_loss = val_loss
+            best_params = params
+
+    return best_params, best_loss
