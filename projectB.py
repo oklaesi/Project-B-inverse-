@@ -84,7 +84,11 @@ def train_vn(num_epochs=NUM_EPOCHS, lr=LR, batch_size=BATCH_SIZE):
     for epoch in range(num_epochs):
         vn.train()
         running = 0.0
+        i = 0
         for gt, s, m in train_loader:
+            i += 1
+            percent = (i / len(train_loader)) * 100
+            print(f"Epoch {epoch+1}/{num_epochs} - Progress: {percent:.3f}%", end='\r')
             gt = gt.to(device)
             s_complex = complex_from_tensor(s).to(device)
             m = m.permute(0, 2, 3, 1).to(device)
@@ -194,6 +198,7 @@ if __name__ == "__main__":
     val_loss = validate_vn(model, val_loader)
     print(f"Validation loss: {val_loss:.6f}")
 
+    """
     save_trained_model(
         model,
         n_layers=N_LAYERS,
@@ -202,4 +207,4 @@ if __name__ == "__main__":
         num_epochs=NUM_EPOCHS,
         lr=LR,
         batch_size=BATCH_SIZE,
-    )
+    )"""
