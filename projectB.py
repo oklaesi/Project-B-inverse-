@@ -103,7 +103,7 @@ def train_vn(num_epochs=NUM_EPOCHS, lr=LR, batch_size=BATCH_SIZE):
             K = len(preds_all)
             ds_loss = 0.0
             for k, x_k in enumerate(preds_all, start=1):
-                weight = torch.exp(-DS_TAU * (K - k))
+                weight = torch.exp(torch.tensor(-DS_TAU * (K - k), device=gt.device, dtype=torch.float32))
                 ds_loss = ds_loss + weight * F.mse_loss(x_k, gt)
 
             optim.zero_grad()
