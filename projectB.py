@@ -9,8 +9,8 @@ import os
 
 #─────────────────────────────────────────────────────────────────────────────
 # Hyperparameters
-N_LAYERS   = 10
-N_FILTERS  = 8
+N_LAYERS   = 8
+N_FILTERS  = 5
 FILTER_SZ  = 3
 
 NOISE_STD          = 0.01
@@ -18,12 +18,12 @@ ACCEL_RATE         = 4
 MASK_CENTER_RADIUS = 8
 
 BATCH_SIZE   = 4
-NUM_EPOCHS   = 50
+NUM_EPOCHS   = 20
 LR           = 1e-2
 PRINT_EVERY  = 10
 TRAIN_SPLIT  = 0.8
 DS_TAU       = 0.1
-SHOW_VAL_IMAGES = False
+SHOW_VAL_IMAGES = True
 #─────────────────────────────────────────────────────────────────────────────
 
 
