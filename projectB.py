@@ -12,6 +12,7 @@ import os
 N_LAYERS   = 8
 N_FILTERS  = 5
 FILTER_SZ  = 3
+REGULARISER = "vtv"
 
 # Undersampling and noise parameters
 NOISE_STD          = 0.01
@@ -83,8 +84,12 @@ def train_vn(num_epochs=NUM_EPOCHS, lr=LR, batch_size=BATCH_SIZE):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     train_loader, _ = create_dataloaders(batch_size=batch_size)
 
-    vn = VariationalNetwork(n_layers=N_LAYERS, n_filters=N_FILTERS,
-                            filter_size=FILTER_SZ).to(device)
+    vn = VariationalNetwork(
+        n_layers=N_LAYERS,
+        n_filters=N_FILTERS,
+        filter_size=FILTER_SZ,
+        regulariser=REGULARISER,
+    ).to(device)
     optim = torch.optim.Adam(vn.parameters(), lr=lr)
 
     losses = []
@@ -255,6 +260,7 @@ if __name__ == "__main__":
         n_layers=N_LAYERS,
         n_filters=N_FILTERS,
         filter_size=FILTER_SZ,
+        regulariser=REGULARISER,
         num_epochs=NUM_EPOCHS,
         lr=LR,
         batch_size=BATCH_SIZE,
