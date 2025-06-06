@@ -267,7 +267,20 @@ def find_optimal_vn_params(param_grid=None, max_trials=None):
 
 
 if __name__ == "__main__":
-    model, _ = train_vn()
+    
+    find_optimal_vn_params(
+        param_grid={
+            "n_layers": [6, 8],
+            "n_filters": [5, 10],
+            "filter_size": [3, 5],
+            "num_epochs": [10, 20],
+            "lr": [1e-3, 1e-2],
+            "batch_size": [4],
+        },
+        max_trials=10,
+    )
+    
+    """model, _ = train_vn()
 
     # Evaluate the trained model on the validation set
     _, val_loader = create_dataloaders(batch_size=BATCH_SIZE)
@@ -277,7 +290,7 @@ if __name__ == "__main__":
         display_examples=SHOW_VAL_IMAGES,
         num_examples=3,
     )
-    print(f"Validation loss: {val_loss:.6f}")
+    print(f"Validation loss: {val_loss:.6f}")"""
 
     """
     save_trained_model(
