@@ -169,6 +169,8 @@ def validate_vn(model, val_loader=None, batch_size=BATCH_SIZE,
     model = model.to(device)
     model.eval()
     running = 0.0
+    sq_error_total = 0.0
+    sq_gt_total = 0.0
     examples = []
     with torch.no_grad():
         for gt, s, m in val_loader:
@@ -181,6 +183,10 @@ def validate_vn(model, val_loader=None, batch_size=BATCH_SIZE,
 
             loss = torch.mean(torch.abs(torch.abs(pred) - torch.abs(gt)))
             running += loss.item()
+
+            diff = torch.abs(pred) - torch.abs(gt)
+            sq_error_total += torch.sum(diff ** 2).item()
+            sq_gt_total += torch.sum(torch.abs(gt) ** 2).item()
 
             if display_examples and len(examples) < num_examples:
                 for j in range(gt.shape[0]):
@@ -205,7 +211,10 @@ def validate_vn(model, val_loader=None, batch_size=BATCH_SIZE,
         plt.tight_layout()
         plt.show()
 
-    return running / len(val_loader)
+    avg_loss = running / len(val_loader)
+    nrmse = np.sqrt(sq_error_total / sq_gt_total)
+    print(f"Validation nRMSE: {nrmse:.6f}")
+    return avg_loss
 
 
 def save_trained_model(model, directory="models", filename=None, **hyperparams):
