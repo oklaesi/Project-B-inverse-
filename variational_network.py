@@ -3,9 +3,29 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class VariationalNetwork(nn.Module):
-    def __init__(self, n_layers=10, n_filters=1, filter_size=3):
+    def __init__(self, n_layers=10, n_filters=1, filter_size=3,
+                 regulariser="vtv"):
+        """Variational network for dynamic image reconstruction.
+
+        Parameters
+        ----------
+        n_layers : int
+            Number of gradient descent steps (layers).
+        n_filters : int
+            Number of learnable filters for the VTV regulariser.
+        filter_size : int
+            Spatial size of the learnable filters.
+        regulariser : {"vtv", "tv", "tikhonov"}
+            Type of regularisation to apply. Defaults to ``"vtv"``.
+        """
+
         super(VariationalNetwork, self).__init__()
         self.n_layers = n_layers
+        self.regulariser = regulariser.lower()
+
+        if self.regulariser not in {"vtv", "tv", "tikhonov"}:
+            raise ValueError(
+                "regulariser must be one of 'vtv', 'tv', or 'tikhonov'")
 
         # Learnable step sizes and regularization weights
         self.alpha = nn.ParameterList([nn.Parameter(torch.tensor(0.1)) for _ in range(n_layers)])
@@ -182,8 +202,13 @@ class VariationalNetwork(nn.Module):
         # 3. Backproject the residual using inverse Fourier transform
         data_term = FH(residual)  # (T, H, W)
 
-        # 4. Compute regularization term
-        reg_term = self.reg_vtv(x, k)  # (T, H, W)
+        # 4. Compute regularization term depending on the chosen scheme
+        if self.regulariser == "vtv":
+            reg_term = self.reg_vtv(x, k)  # (T, H, W)
+        elif self.regulariser == "tv":
+            reg_term = self.reg_tv(x)
+        else:  # self.regulariser == "tikhonov"
+            reg_term = self.reg_tikhonov(x)
 
         # 5. Combine with step size α^k
         g = self.alpha[k] * (data_term + reg_term)  # (T, H, W)
