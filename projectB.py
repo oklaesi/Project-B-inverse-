@@ -12,7 +12,7 @@ import os
 N_LAYERS   = 10
 N_FILTERS  = 10
 FILTER_SZ  = 3
-REGULARISER = "tv"
+REGULARISER = "tv" # Options: "vtv", "tv", "tikhonov"
 
 # Undersampling and noise parameters
 NOISE_STD          = 0.05
