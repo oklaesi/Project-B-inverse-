@@ -133,19 +133,17 @@ class VariationalNetwork(nn.Module):
         return reg_term
 
     def reg_tv(self, x):
-        """
-        Isotropic total variation regularizer.
+        """Isotropic total variation regularizer.
 
-        Args:
-            x: input tensor of shape ``(T, H, W)``
-
-        Returns:
-            reg_term: divergence of normalized gradients with the same shape as ``x``
+        This implementation works for inputs of shape ``(T, H, W)`` as well
+        as batched tensors with shape ``(B, T, H, W)``.
         """
 
-        grad_x = x[:, :, 1:] - x[:, :, :-1]
-        grad_y = x[:, 1:, :] - x[:, :-1, :]
+        # Finite differences along the spatial dimensions (H, W)
+        grad_x = x[..., 1:] - x[..., :-1]
+        grad_y = x[..., 1:, :] - x[..., :-1, :]
 
+        # Pad to keep the original size
         grad_x = F.pad(grad_x, (0, 1), mode="replicate")
         grad_y = F.pad(grad_y, (0, 0, 0, 1), mode="replicate")
 
@@ -153,8 +151,8 @@ class VariationalNetwork(nn.Module):
         grad_x_norm = grad_x / magnitude
         grad_y_norm = grad_y / magnitude
 
-        div_x = grad_x_norm - F.pad(grad_x_norm[:, :, :-1], (1, 0), mode="replicate")
-        div_y = grad_y_norm - F.pad(grad_y_norm[:, :-1, :], (0, 0, 1, 0), mode="replicate")
+        div_x = grad_x_norm - F.pad(grad_x_norm[..., :-1], (1, 0), mode="replicate")
+        div_y = grad_y_norm - F.pad(grad_y_norm[..., :-1, :], (0, 0, 1, 0), mode="replicate")
 
         return div_x + div_y
 
