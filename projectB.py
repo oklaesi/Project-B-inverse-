@@ -9,10 +9,10 @@ import os
 
 #─────────────────────────────────────────────────────────────────────────────
 # Hyperparameters
-N_LAYERS   = 10
-N_FILTERS  = 10
+N_LAYERS   = 8
+N_FILTERS  = 5
 FILTER_SZ  = 3
-REGULARISER = "tv"
+REGULARISER = "tv" # Options: "vtv", "tv", "tikhonov"
 
 # Undersampling and noise parameters
 NOISE_STD          = 0.05
@@ -22,7 +22,7 @@ SIGMA             = 10
 
 # Training parameters
 BATCH_SIZE   = 4
-NUM_EPOCHS   = 10
+NUM_EPOCHS   = 15
 LR           = 1e-2
 PRINT_EVERY  = 10
 TRAIN_SPLIT  = 0.8
