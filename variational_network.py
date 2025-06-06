@@ -143,16 +143,24 @@ class VariationalNetwork(nn.Module):
         grad_x = x[..., 1:] - x[..., :-1]
         grad_y = x[..., 1:, :] - x[..., :-1, :]
 
-        # Pad to keep the original size
-        grad_x = F.pad(grad_x, (0, 1), mode="replicate")
-        grad_y = F.pad(grad_y, (0, 0, 0, 1), mode="replicate")
+        # ``torch.nn.functional.pad`` with ``mode='replicate'`` does not support
+        # tensors with more than three dimensions.  Since ``x`` can be either a
+        # single sequence ``(T, H, W)`` or a batched tensor ``(B, T, H, W)``, we
+        # replicate the border values manually to keep the original size.
+
+        grad_x = torch.cat([grad_x, grad_x[..., -1:]], dim=-1)
+        grad_y = torch.cat([grad_y, grad_y[..., -1:, :]], dim=-2)
 
         magnitude = torch.sqrt(grad_x ** 2 + grad_y ** 2 + 1e-8)
         grad_x_norm = grad_x / magnitude
         grad_y_norm = grad_y / magnitude
 
-        div_x = grad_x_norm - F.pad(grad_x_norm[..., :-1], (1, 0), mode="replicate")
-        div_y = grad_y_norm - F.pad(grad_y_norm[..., :-1, :], (0, 0, 1, 0), mode="replicate")
+        div_x = grad_x_norm - torch.cat(
+            [grad_x_norm[..., :1], grad_x_norm[..., :-1]], dim=-1
+        )
+        div_y = grad_y_norm - torch.cat(
+            [grad_y_norm[..., :1, :], grad_y_norm[..., :-1, :]], dim=-2
+        )
 
         return div_x + div_y
 
