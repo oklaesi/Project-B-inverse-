@@ -27,6 +27,7 @@ LR           = 1e-2
 PRINT_EVERY  = 10
 TRAIN_SPLIT  = 0.8
 DS_TAU       = 0.1
+USE_DEEP_SUPERVISION = True
 SHOW_VAL_IMAGES = True
 
 
@@ -79,8 +80,22 @@ def create_dataloaders(batch_size=BATCH_SIZE, train_split=TRAIN_SPLIT):
 
 
 
-def train_vn(num_epochs=NUM_EPOCHS, lr=LR, batch_size=BATCH_SIZE):
-    """Train a variational network on the heart dataset and plot the loss."""
+def train_vn(num_epochs=NUM_EPOCHS, lr=LR, batch_size=BATCH_SIZE,
+             use_deep_supervision=USE_DEEP_SUPERVISION):
+    """Train a variational network on the heart dataset and plot the loss.
+
+    Parameters
+    ----------
+    num_epochs : int
+        Number of training epochs.
+    lr : float
+        Learning rate for Adam optimizer.
+    batch_size : int
+        Training batch size.
+    use_deep_supervision : bool
+        If ``True`` use the deep supervision loss, otherwise use the
+        standard L1 loss between the network output and the ground truth.
+    """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     train_loader, _ = create_dataloaders(batch_size=batch_size)
 
@@ -106,19 +121,36 @@ def train_vn(num_epochs=NUM_EPOCHS, lr=LR, batch_size=BATCH_SIZE):
             m = m.permute(0, 2, 3, 1).to(device)
 
             x0 = k2i_torch(s_complex)
-            pred, preds_all = vn(x0, s_complex, i2k_torch, k2i_torch, m,
-                                 return_intermediate=True)
+            if use_deep_supervision:
+                pred, preds_all = vn(
+                    x0, s_complex, i2k_torch, k2i_torch, m,
+                    return_intermediate=True
+                )
+            else:
+                pred = vn(
+                    x0, s_complex, i2k_torch, k2i_torch, m,
+                    return_intermediate=False
+                )
 
             plot_loss = torch.mean(torch.abs(torch.abs(pred) - torch.abs(gt)))
 
-            K = len(preds_all)
-            ds_loss = 0.0
-            for k, x_k in enumerate(preds_all, start=1):
-                weight = torch.exp(torch.tensor(-DS_TAU * (K - k), device=gt.device, dtype=torch.float32))
-                ds_loss = ds_loss + weight * F.mse_loss(x_k, gt)
+            if use_deep_supervision:
+                K = len(preds_all)
+                loss = 0.0
+                for k, x_k in enumerate(preds_all, start=1):
+                    weight = torch.exp(
+                        torch.tensor(
+                            -DS_TAU * (K - k),
+                            device=gt.device,
+                            dtype=torch.float32,
+                        )
+                    )
+                    loss = loss + weight * F.mse_loss(x_k, gt)
+            else:
+                loss = plot_loss
 
             optim.zero_grad()
-            ds_loss.backward()
+            loss.backward()
             optim.step()
             running += plot_loss.item()
 
@@ -251,7 +283,7 @@ def save_trained_model(model, directory="models", filename=None, **hyperparams):
 
 
 if __name__ == "__main__":
-    model, _ = train_vn()
+    model, _ = train_vn(use_deep_supervision=USE_DEEP_SUPERVISION)
 
     # Evaluate the trained model on the validation set
     _, val_loader = create_dataloaders(batch_size=BATCH_SIZE)
