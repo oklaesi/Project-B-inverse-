@@ -4,11 +4,11 @@ import torch.nn.functional as F
 
 def vtv_loss(x):
     """
-    Computes the Vectorial Total Variation (VTV) loss as described in Eq. (25) 
+    Computes the Vectorial Total Variation (VTV) loss as described in Eq. (19) from the project description.
 
     Args:
         x (torch.Tensor): A dynamic image sequence of shape (T, H, W),
-                          where T is the number of frames, H is the height, and W is the width.
+                          where T are the frames, H is the height, and W is the width.
 
     Returns:
         torch.Tensor: The VTV loss value (scalar).
@@ -38,9 +38,9 @@ def generate_undersampling_mask(shape, acceleration, center_fraction=0.1, sigma=
 
     Args:
         shape: (H, W, T) — dimensions of k-space data
-        acceleration: desired acceleration factor (e.g., 4 or 6)
+        acceleration: desired acceleration factor
         center_fraction: fraction of central k-space to fully sample
-        sigma: width parameter for Laplace-shaped density (controls decay)
+        sigma: width parameter for Laplace-shaped density
 
     Returns:
         mask: numpy array of shape (H, W, T) with 0 (unsampled) or 1 (sampled)
