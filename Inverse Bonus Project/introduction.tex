@@ -1,115 +1,202 @@
-% Some commands used in this file
+% Additional macros
 \newcommand{\package}{\emph}
 
 \chapter{Introduction}
 
-This is version \verb-v1.4- of the template.
+The goal of Project B is to develop a permutation-invariant Variational Network (VN) for 2D + time cardiac image reconstruction. In real applications time frames can be out of order.
 
-We assume that you found this template on our institute's website, so
-we do not repeat everything stated there.  Consult the website again
-for pointers to further reading about \LaTeX{}.  This chapter only
-gives a brief overview of the files you are looking at.
+\section{Description}
 
-\section{Features}
-\label{sec:features}
+I tried out different variational networks with different numbers of layers to see how much detail a deeper network can catch. To account for the permutation-invariant timeframes a vectorial total variation (VTV) regulariser is used to exploit the similarity of the timeframes of each batch. The Fourier transform in the VN leaves the time dimension untouched and the VTV is the only way the time domain is taken into account.
 
-The rest of this document shows off a few features of the template
-files.  Look at the source code to see which macros we used!
+The program is designed so that every necessary parameter can easily be changed in a ``Hyperparameter'' section, including the regulariser and the loss function.
 
-The template is divided into \TeX{} files as follows:
-\begin{enumerate}
-\item \texttt{thesis.tex} is the main file.
-\item \texttt{extrapackages.tex} holds extra package includes.
-\item \texttt{layoutsetup.tex} defines the style used in this document.
-\item \texttt{theoremsetup.tex} declares the theorem-like environments.
-\item \texttt{macrosetup.tex} defines extra macros that you may find
-  useful.
-\item \texttt{introduction.tex} contains this text.
-\item \texttt{sections.tex} is a quick demo of each sectioning level
-  available.
-\item \texttt{refs.bib} is an example bibliography file.  You can use
-  Bib\TeX{} to quote references.  For example, read
-  \cite{bringhurst1996ets} if you can get a hold of it.
-\end{enumerate}
+\subsection{Training}
 
+The training was conducted on an 80/20 training validation split with two possible loss types.
 
-\subsection{Extra package includes}
+\paragraph{Data Fidelity Loss}
 
-The file \texttt{extrapackages.tex} lists some packages that usually
-come in handy.  Simply have a look at the source code.  We have
-added the following comments based on our experiences:
+The standard data fidelity loss proposed in the project script with \verb|USE_DEEP_SUPERVISION = False|:
+\[
+\min_{\Theta} \; \mathbb{E}_{(x,s,M)\sim\mathcal{T}}\;\bigl\lVert x_{\Theta}^{K}(s,M) - x \bigr\rVert_{1}
+\]
+
+\paragraph{Deep Supervision Loss}
+
+The data fidelity loss embedded in a deep supervision manner\footnote{See lecture notes 9.} with \verb|USE_DEEP_SUPERVISION = True|:
+\[
+\mathcal{L}_{\text{total}} = \sum_{k=1}^K \exp(-\tau (K - k)) \cdot \left\| \mathbf{x}^{(k)} - \mathbf{x}_{\text{GT}} \right\|_1
+\]
+
+\subsection{Regularisers}
+
+Three regularisers are available.
+
+\paragraph{VTV}
+The VTV regulariser proposed in the project script
+\[
+\text{Reg}^k(\mathbf{x}^k)_t = \sum_{i \le n_f} \mathbf{D}^{k,i^T} \left\{ (\mathbf{D}^{k,i}\mathbf{x}_t) \odot \varphi^{k,i} \left( \sqrt{\frac{|\mathbf{D}^{k,i}\mathbf{x}_1|^2 + \cdots + |\mathbf{D}^{k,i}\mathbf{x}_T|^2}{T}} \right) \right\}
+\]
+
+\paragraph{TV}
+The isotropic TV regulariser introduced in lecture 5
+\[
+\|\nabla x\|_1 = \sum_p \sqrt{(\nabla_1x)^2 + (\nabla_2x)^2}
+\]
+
+\paragraph{Tikhonov}
+\[
+\text{tikhonov}(\mathbf{x}) = \mathbf{x} * \mathbf{K}, \qquad \mathbf{K} = \begin{bmatrix} 0 & -1 & 0 \\ -1 & 4 & -1 \\ 0 & -1 & 0 \end{bmatrix}
+\]
+
+\subsection{Choose Parameters}
+
+I tried 3, 5 and 10 layers for the following fixed parameters.
+
 \begin{description}
-\item[REC] This package is recommended.
-\item[OPT] This package is optional.  It usually solves a specific
-  problem in a clever way.
-\item[ADV] This package is for the advanced user, but solves a problem
-  frequent enough that we mention it. Consult the package's
-  documentation.
+  \item[Network Parameters] \verb|N_LAYERS = 3,5,10|, \verb|N_FILTERS = 5|, \verb|FILTER_SZ = 3|, \verb|REGULARISER = "vtv"|
+  \item[Undersampling and noise] \verb|NOISE_STD = 0.05|, \verb|ACCEL_RATE = 4|, \verb|CENTER_FRACTION = 0.1|, \verb|SIGMA = 10|
+  \item[Training] \verb|BATCH_SIZE = 4|, \verb|NUM_EPOCHS = 15|, \verb|LR = 1e-2|, \verb|PRINT_EVERY = 10|, \verb|TRAIN_SPLIT = 0.8|, \verb|DS_TAU = 0.1|, \verb|USE_DEEP_SUPERVISION = True|, \verb|SHOW_VAL_IMAGES = True|
 \end{description}
 
-As a small example, here is a reference to the Section \emph{Features}
-typeset with the recommended \package{varioref} package:
-\begin{quote}
-  See Section~\vref{sec:features}.
-\end{quote}
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.6\linewidth]{data/training_loss_different_n_layers.png}
+  \caption{Training and validation loss for fixed parameters with different number of layers.}
+\end{figure}
 
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.6\linewidth]{data/nRMSE_loss.png}
+  \caption{nRMSE for fixed parameters with different number of layers.}
+\end{figure}
 
-\subsection{Layout setup}
+The loss decreased for deeper networks as expected. Increasing the number of filters further decreases the loss. However, increasing the kernel size caused the network to converge slower; the epochs had to be increased from 15 to 25 to see convergence and the loss was still higher than for the other combinations. Due to limited computation capacity most experiments used a lower number of layers and filters.
 
-This defines the overall look of the document -- for example, it
-changes the chapter and section heading appearance.  We consider this
-a `do not touch' area.  Take a look at the excellent \emph{Memoir}
-documentation before changing it.
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.6\linewidth]{data/training_validation_differnt_n_filter.png}
+  \caption{Training and validation loss for different numbers of filters and kernel sizes.}
+\end{figure}
 
-In fact, take a look at the excellent \emph{Memoir} documentation,
-full stop.
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.6\linewidth]{data/mRMSE_different_n_filrters_size.png}
+  \caption{nRMSE for different numbers of filters and kernel sizes.}
+\end{figure}
 
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.6\linewidth]{data/learning_loss 1.png}
+  \caption{Training loss for a 4\,x\,4 kernel with 10 layers, 5 filters and 25 epochs.}
+\end{figure}
 
-\subsection{Theorem setup}
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.6\linewidth]{data/reconstruction loss.png}
+  \caption{Training loss for a 3\,x\,3 kernel with 10 layers, 5 filters and 25 epochs.}
+\end{figure}
 
-This file defines a bunch of theorem-like environments.
+\chapter{Experimental Setting}
 
-\begin{theorem}
-  An example theorem.
-\end{theorem}
+The experimental setting consists only of the dataset \verb|2dt_heart.mat| that contains 2D + time ground truth images with shape $(128, 128, 11, 375)$. The first two dimensions are spatial, the third is the time dimension and the fourth corresponds to the samples. Synthetic data is created by adding an under-sampling mask and noise. From this training pairs a training and validation split with 80\% training and 20\% validation data is generated.
 
-\begin{proof}
-  Proof text goes here.
-\end{proof}
+\section{Mask Generation}
 
-Note that the q.e.d.\ symbol moves to the correct place automatically
-if you end the proof with an \texttt{enumerate} or
-\texttt{displaymath}.  You do not need to use \verb-\qedhere- as with
-\package{amsthm}.
+Masks are generated randomly for each sample and provided to the VN. A fixed center radius is used and outside of this kernel a Laplace shaped density distribution with tuneable parameters is applied:
+\[
+  p(k_y) = \alpha \exp \left( -\frac{|k_y - n_y/2|}{\sigma} \right)
+\]
 
-\begin{theorem}[Some Famous Guy]
-  Another example theorem.
-\end{theorem}
+\chapter{Results}
 
-\begin{proof}
-  This proof
-  \begin{enumerate}
-  \item ends in an enumerate.
-  \end{enumerate}
-\end{proof}
+\section{VTV vs\ TV regulariser}
 
-\begin{proposition}
-  Note that all theorem-like environments are by default numbered on
-  the same counter.
-\end{proposition}
+Comparing the VTV regulariser with Total Variation (TV) and Tikhonov regularisers shows notable differences. Training is much faster for TV and Tikhonov since they only look at one timeframe at a time, whereas VTV checks all frames. TV converges at about two epochs and Tikhonov after one epoch, while VTV starts to converge only after about 13 epochs with the same hyperparameters.
 
-\begin{proof}
-  This proof ends in a display like so:
-  \begin{displaymath}
-    f(x) = x^2.
-  \end{displaymath}
-\end{proof}
+Hyperparameters were identical except for the regulariser.
 
+\begin{description}
+  \item[Network Parameters] \verb|N_LAYERS = 8|, \verb|N_FILTERS = 5|, \verb|FILTER_SZ = 3|, \verb|REGULARISER = "vtv" or "tv"|
+  \item[Undersampling and noise] \verb|NOISE_STD = 0.05|, \verb|ACCEL_RATE = 4|, \verb|CENTER_FRACTION = 0.1|, \verb|SIGMA = 10|
+  \item[Training] \verb|BATCH_SIZE = 4|, \verb|NUM_EPOCHS = 15|, \verb|LR = 1e-2|, \verb|PRINT_EVERY = 10|, \verb|TRAIN_SPLIT = 0.8|, \verb|DS_TAU = 0.1|, \verb|USE_DEEP_SUPERVISION = True|, \verb|SHOW_VAL_IMAGES = True|
+\end{description}
 
-\subsection{Macro setup}
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.6\linewidth]{data/2 - Zettelkasten/1 - Atomic Notes/Assets/learning_loss.png}
+  \caption{VTV training $\ell_1$ loss.}
+\end{figure}
 
-For now the macro setup only shows how to define some basic macros,
-and how to use a neat feature of the \package{mathtools} package:
-\begin{displaymath}
-  \abs{a}, \quad \abs*{\frac{a}{b}}, \quad \abs[\big]{\frac{a}{b}}.
-\end{displaymath}
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.6\linewidth]{data/training_loss 3.png}
+  \caption{Tikhonov training $\ell_1$ loss.}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.6\linewidth]{data/tv_training_loss.png}
+  \caption{TV training loss.}
+\end{figure}
+
+The VN with the VTV regulariser achieved a training loss of 0.019454, a validation loss of 0.019311 and an nRMSE of 0.092765. The Tikhonov version had a training loss of 0.029170, a validation loss of 0.029245 and an nRMSE of 0.140566. The TV version had higher losses as well (values not recorded).
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.6\linewidth]{data/training_loss_vtv_vs_tv.png.png}
+  \caption{Training loss for VTV and TV regularisers for different noise and acceleration parameters.}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.6\linewidth]{data/validation_loss_vtv_vs_tv.png}
+  \caption{Validation error (nRMSE) for VTV and TV regularisers for different noise and acceleration parameters.}
+\end{figure}
+
+\section{Deep Supervision vs no deep supervision}
+
+The VN with deep supervision reached a training loss of 0.019391, validation loss of 0.019653 and an nRMSE of 0.094850. The VN without deep supervision achieved a training loss of 0.018163, a validation loss of 0.018055 and an nRMSE of 0.084516. The deep supervision model converged faster but the final performance was worse.
+
+Hyperparameters:
+\begin{description}
+  \item[Network Parameters] \verb|N_LAYERS = 8|, \verb|N_FILTERS = 5|, \verb|FILTER_SZ = 3|, \verb|REGULARISER = "vtv"|
+  \item[Undersampling and noise] \verb|NOISE_STD = 0.05|, \verb|ACCEL_RATE = 4|, \verb|CENTER_FRACTION = 0.1|, \verb|SIGMA = 10|
+  \item[Training] \verb|BATCH_SIZE = 4|, \verb|NUM_EPOCHS = 25|, \verb|LR = 1e-2|, \verb|PRINT_EVERY = 10|, \verb|TRAIN_SPLIT = 0.8|, \verb|DS_TAU = 0.1|, \verb|USE_DEEP_SUPERVISION = True/False|, \verb|SHOW_VAL_IMAGES = True|
+\end{description}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.6\linewidth]{data/training_loss 8.png}
+  \caption{Training loss of the VN with deep supervision.}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.6\linewidth]{data/training_loss 9.png}
+  \caption{Training loss of the VN without deep supervision.}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.6\linewidth]{data/reconstruction_example 10.png}
+  \caption{Example reconstruction images (without deep supervision).}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.6\linewidth]{data/reconstruction_example 9.png}
+  \caption{Example reconstruction images (without deep supervision).}
+\end{figure}
+
+\chapter{Discussion}
+
+The VTV regulariser that renders the 2D VN permutation invariant performs much better than regularisers that do not take the time dimension into account. Surprisingly, the VN with deep supervision performed worse than the VN without.
+
+The parameters were chosen to keep the limited computation power and a reasonable runtime in mind. Future experiments could explore deeper networks and whether deep supervision still performs worse for more complex architectures.
+
+\chapter{Bibliography}
+
+All information used in this project are available in the course ``Model- and Learning-Based Inverse Problems in Imaging''. Generative AI was used for coding assistance.
+
