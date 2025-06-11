@@ -1,6 +1,6 @@
 # Project B Variational Network
 
-This repository contains a PyTorch implementation of a variational network for dynamic image reconstruction. The main entry point is **`projectB.py`**, which trains the model on the `2dt_heart.mat` dataset and evaluates it on a validation split.
+This repository contains a PyTorch implementation of a variational network for dynamic image reconstruction. The main entry point is `projectB.py`, which trains the model on the `2dt_heart.mat` dataset and evaluates it on a validation split.
 
 ## Installation
 
@@ -50,13 +50,8 @@ SHOW_VAL_IMAGES = True
 
 To experiment with different settings you can either edit these constants or call `train_vn` manually from a Python interpreter, passing your own values for `num_epochs`, `lr`, `batch_size`, and `use_deep_supervision`:
 
-```python
-from projectB import train_vn
-model, losses = train_vn(num_epochs=20, lr=1e-3, batch_size=8, use_deep_supervision=False)
-```
-
 ## Output
 
-The `train_vn` function returns the trained model and a list of training losses. The script will also compute the validation loss and print the nRMSE after training.
+The program returns a plot of the training loss the training loss at the end. The script will also compute the validation loss and print the nRMSE after training. If specified the program displays example reconstruction images.
 
 ---

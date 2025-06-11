@@ -31,7 +31,7 @@ TRAIN_SPLIT  = 0.8
 DS_TAU       = 0.1
 USE_DEEP_SUPERVISION = True
 SHOW_VAL_IMAGES = True
-
+NUMBER_OF_EXAMPLES = 3
 
 #─────────────────────────────────────────────────────────────────────────────
 
@@ -171,7 +171,7 @@ def train_vn(num_epochs=NUM_EPOCHS, lr=LR, batch_size=BATCH_SIZE,
 
 
 def validate_vn(model, val_loader=None, batch_size=BATCH_SIZE,
-                display_examples=False, num_examples=3):
+                display_examples=False, num_examples=NUMBER_OF_EXAMPLES):
     """Validate the VN.
 
     Parameters
@@ -263,7 +263,7 @@ if __name__ == "__main__":
         model,
         val_loader,
         display_examples=SHOW_VAL_IMAGES,
-        num_examples=3,
+        num_examples=NUMBER_OF_EXAMPLES,
     )
     print(f"Validation loss: {val_loss:.6f}")
 
