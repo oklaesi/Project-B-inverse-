@@ -2,33 +2,9 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-def k2i(img, dims=(0, )):
-    dim_img = img.shape
-    if dims is None:
-        factor = np.prod(dim_img)
-        return np.sqrt(factor) * np.fft.fftshift(np.fft.ifftn(np.fft.ifftshift(img)))
-    else:
-        for dim in dims:
-            img = np.sqrt(dim_img[dim]) * np.fft.fftshift(
-                np.fft.ifft(np.fft.ifftshift(img, axes=dim), axis=dim), axes=dim
-            )
-        return img
-
-def i2k(img, dims=(0, )):
-    dim_img = img.shape
-    if dims is None:
-        factor = np.prod(dim_img)
-        return (1/np.sqrt(factor)) * np.fft.fftshift(np.fft.fftn(np.fft.ifftshift(img)))
-    else:
-        for dim in dims:
-            img = (1/np.sqrt(dim_img[dim])) * np.fft.fftshift(
-                np.fft.fft(np.fft.ifftshift(img, axes=dim), axis=dim), axes=dim
-            )
-        return img
-
 def vtv_loss(x):
     """
-    Computes the Vectorial Total Variation (VTV) loss as described in Eq. (19) of the script.
+    Computes the Vectorial Total Variation (VTV) loss as described in Eq. (25) 
 
     Args:
         x (torch.Tensor): A dynamic image sequence of shape (T, H, W),
