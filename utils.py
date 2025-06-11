@@ -2,6 +2,19 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+def i2k(img, dims=(0, )):
+    dim_img = img.shape
+    if dims is None:
+        factor = np.prod(dim_img)
+        return (1/np.sqrt(factor)) * np.fft.fftshift(np.fft.fftn(np.fft.ifftshift(img)))
+    else:
+        for dim in dims:
+            img = (1/np.sqrt(dim_img[dim])) * np.fft.fftshift(
+                np.fft.fft(np.fft.ifftshift(img, axes=dim), axis=dim), axes=dim
+            )
+        return img
+    
+
 def vtv_loss(x):
     """
     Computes the Vectorial Total Variation (VTV) loss as described in Eq. (19) from the project description.
@@ -123,26 +136,6 @@ def complex_from_tensor(t):
     else:
         raise ValueError(
             "Tensor must have shape (2, T, H, W) or (B, 2, T, H, W)")
-
-
-def tensor_from_complex(c):
-    """Convert complex tensor to a real-valued representation.
-
-    Accepts a tensor of shape ``(H, W, T)`` or ``(B, H, W, T)`` and returns a
-    real tensor with the complex dimension stacked in the first position,
-    resulting in shapes ``(2, T, H, W)`` or ``(B, 2, T, H, W)`` respectively.
-    """
-
-    real = torch.view_as_real(c)
-    if c.ndim == 3:
-        # (H, W, T, 2) -> (2, T, H, W)
-        return real.permute(3, 2, 0, 1)
-    elif c.ndim == 4:
-        # (B, H, W, T, 2) -> (B, 2, T, H, W)
-        return real.permute(0, 4, 3, 1, 2)
-    else:
-        raise ValueError(
-            "Complex tensor must have shape (H, W, T) or (B, H, W, T)")
 
 
 def i2k_torch(x):
