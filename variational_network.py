@@ -169,7 +169,7 @@ class VariationalNetwork(nn.Module):
         Tikhonov regularizer implemented via a discrete Laplacian.
 
         Args:
-            x: input tensor of shape ``(T, H, W)``
+            x: input tensor of shape ``(T, H, W)`` or ``(B, T, H, W)``
 
         Returns:
             reg_term: Laplacian of ``x`` with the same shape as ``x``
@@ -179,8 +179,22 @@ class VariationalNetwork(nn.Module):
                               [-1., 4., -1.],
                               [0., -1., 0.]], device=x.device, dtype=x.dtype)
         kernel = kernel.view(1, 1, 3, 3)
-        reg_term = F.conv2d(x.unsqueeze(1), kernel, padding=1)
-        return reg_term.squeeze(1)
+
+        if x.dim() == 3:
+            # (T, H, W) -> (T, 1, H, W)
+            x_reshaped = x.unsqueeze(1)
+            reg_term = F.conv2d(x_reshaped, kernel, padding=1)
+            reg_term = reg_term.squeeze(1)  # (T, H, W)
+        elif x.dim() == 4:
+            # (B, T, H, W) -> (B*T, 1, H, W)
+            B, T, H, W = x.shape
+            x_reshaped = x.reshape(B * T, 1, H, W)
+            reg_term = F.conv2d(x_reshaped, kernel, padding=1)
+            reg_term = reg_term.squeeze(1).reshape(B, T, H, W)  # (B, T, H, W)
+        else:
+            raise ValueError("Input x must have 3 or 4 dimensions.")
+
+        return reg_term
     
     
 
