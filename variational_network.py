@@ -12,11 +12,10 @@ class VariationalNetwork(nn.Module):
         n_layers : int
             Number of gradient descent steps (layers).
         n_filters : int
-            Number of learnable filters for the VTV regulariser.
+            Number of learnable filters.
         filter_size : int
             Spatial size of the learnable filters.
-        regulariser : {"vtv", "tv", "tikhonov"}
-            Type of regularisation to apply. Defaults to ``"vtv"``.
+        regulariser : {"vtv", "tv", "tikhonov"}.
         """
 
         super(VariationalNetwork, self).__init__()
@@ -39,7 +38,7 @@ class VariationalNetwork(nn.Module):
 
     def apply_activation(self, x, k, i):
         """
-        Interpolate learnable activation function φ^{k,i} over fixed grid
+        Interpolate learnable activation function phi^{k,i} over fixed grid
         Args:
             x: input tensor (H, W)
             k: layer index
@@ -200,7 +199,7 @@ class VariationalNetwork(nn.Module):
 
     def compute_g(self, x, s, M, F, FH, k):
         """
-        Compute g^k = α^k * F^H(M * (F x^k - s)) + Reg^k(x^k)
+        Compute g^k = alpha^k * F^H(M * (F x^k - s)) + Reg^k(x^k)
         
         Args:
             x: current iterate (T, H, W)
@@ -237,7 +236,7 @@ class VariationalNetwork(nn.Module):
     
     def update_momentum(self, m_prev, g, k):
         """
-        Compute m^{k+1} = μ^{k+1} * m^k + g^k
+        Compute m^{k+1} = my^{k+1} * m^k + g^k
 
         Args:
             m_prev: previous momentum (T, H, W)

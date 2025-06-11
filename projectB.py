@@ -9,6 +9,8 @@ import os
 
 #─────────────────────────────────────────────────────────────────────────────
 # Hyperparameters
+
+# Network parameters
 N_LAYERS   = 8
 N_FILTERS  = 5
 FILTER_SZ  = 3
@@ -82,7 +84,7 @@ def create_dataloaders(batch_size=BATCH_SIZE, train_split=TRAIN_SPLIT):
 
 def train_vn(num_epochs=NUM_EPOCHS, lr=LR, batch_size=BATCH_SIZE,
              use_deep_supervision=USE_DEEP_SUPERVISION):
-    """Train a variational network on the heart dataset and plot the loss.
+    """train the vn.
 
     Parameters
     ----------
@@ -170,7 +172,7 @@ def train_vn(num_epochs=NUM_EPOCHS, lr=LR, batch_size=BATCH_SIZE,
 
 def validate_vn(model, val_loader=None, batch_size=BATCH_SIZE,
                 display_examples=False, num_examples=3):
-    """Validate a trained variational network on the held-out set.
+    """Validate the VN.
 
     Parameters
     ----------
@@ -190,6 +192,8 @@ def validate_vn(model, val_loader=None, batch_size=BATCH_SIZE,
 
     Returns
     -------
+    prints the nRMSE and displays reconstruction examples
+    
     float
         The average L1 validation loss.
     """
@@ -249,38 +253,6 @@ def validate_vn(model, val_loader=None, batch_size=BATCH_SIZE,
     return avg_loss
 
 
-def save_trained_model(model, directory="models", filename=None, **hyperparams):
-    """Save a trained model to ``directory/filename``.
-
-    The filename will encode given hyperparameters if ``filename`` is ``None``.
-
-    Args:
-        model (torch.nn.Module): trained variational network
-        directory (str): directory to store the model file
-        filename (str, optional): file name for the saved state dict.  If not
-            provided, a name is constructed from ``hyperparams``.
-        **hyperparams: keyword arguments describing the hyperparameters used
-            during training.
-    """
-
-    def _sanitize(val):
-        if isinstance(val, float):
-            s = f"{val:.0e}" if val < 1e-3 or val >= 1e3 else f"{val:g}"
-            s = s.replace("+", "")
-        else:
-            s = str(val)
-        return s.replace(".", "p")
-
-    os.makedirs(directory, exist_ok=True)
-
-    if filename is None:
-        parts = [f"{k}{_sanitize(v)}" for k, v in sorted(hyperparams.items())]
-        filename = "vn_" + "_".join(parts) + ".pth"
-
-    path = os.path.join(directory, filename)
-    torch.save(model.state_dict(), path)
-    print(f"Model saved to {path}")
-
 
 if __name__ == "__main__":
     model, _ = train_vn(use_deep_supervision=USE_DEEP_SUPERVISION)
@@ -295,14 +267,3 @@ if __name__ == "__main__":
     )
     print(f"Validation loss: {val_loss:.6f}")
 
-    """
-    save_trained_model(
-        model,
-        n_layers=N_LAYERS,
-        n_filters=N_FILTERS,
-        filter_size=FILTER_SZ,
-        regulariser=REGULARISER,
-        num_epochs=NUM_EPOCHS,
-        lr=LR,
-        batch_size=BATCH_SIZE,
-    )"""

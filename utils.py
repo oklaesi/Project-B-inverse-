@@ -15,36 +15,6 @@ def i2k(img, dims=(0, )):
         return img
     
 
-def vtv_loss(x):
-    """
-    Computes the Vectorial Total Variation (VTV) loss as described in Eq. (19) from the project description.
-
-    Args:
-        x (torch.Tensor): A dynamic image sequence of shape (T, H, W),
-                          where T are the frames, H is the height, and W is the width.
-
-    Returns:
-        torch.Tensor: The VTV loss value (scalar).
-    """
-    T, H, W = x.shape
-
-    # Compute spatial gradients for each frame (along spatial axes)
-    grad_x = x[:, :, 1:] - x[:, :, :-1]       # horizontal gradient (along width)
-    grad_y = x[:, 1:, :] - x[:, :-1, :]       # vertical gradient (along height)
-
-    # Pad to (T, H, W) for consistent size
-    grad_x = F.pad(grad_x, (0, 1), mode='replicate')   # pad last column (W dimension)
-    grad_y = F.pad(grad_y, (0, 0, 0, 1), mode='replicate')  # pad last row (H dimension)
-
-    # Compute squared gradient magnitude across time (sum over T)
-    squared_gradients = grad_x**2 + grad_y**2
-    vtv_map = squared_gradients.sum(dim=0)  # sum over T, shape: (H, W)
-
-    # Take sqrt and sum over spatial dimensions
-    vtv = torch.sqrt(vtv_map + 1e-8).sum()
-
-    return vtv
-
 def generate_undersampling_mask(shape, acceleration, center_fraction=0.1, sigma=10):
     """
     Generates a 3D undersampling mask with incoherent sampling across time and a Laplace-shaped density.
