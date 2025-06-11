@@ -9,8 +9,8 @@ import os
 
 #─────────────────────────────────────────────────────────────────────────────
 # Hyperparameters
-N_LAYERS   = 10
-N_FILTERS  = 10
+N_LAYERS   = 8
+N_FILTERS  = 5
 FILTER_SZ  = 3
 REGULARISER = "tv" # Options: "vtv", "tv", "tikhonov"
 
@@ -145,7 +145,7 @@ def train_vn(num_epochs=NUM_EPOCHS, lr=LR, batch_size=BATCH_SIZE,
                             dtype=torch.float32,
                         )
                     )
-                    loss = loss + weight * F.mse_loss(x_k, gt)
+                    loss = loss + weight * torch.mean(torch.abs(torch.abs(x_k) - torch.abs(gt)))
             else:
                 loss = plot_loss
 
