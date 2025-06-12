@@ -6,7 +6,7 @@
 
 
 %% We use the memoir class because it offers a many easy to use features.
-\documentclass[11pt,a4paper,titlepage]{memoir}
+\documentclass[11pt,a4paper,titlepage,openany]{memoir}
 
 %% Packages
 %% ========
@@ -97,9 +97,7 @@
 \end{titlingpage}
 
 
-%% TOC with the proper setup, do not change.
-\cleartorecto
-\tableofcontents
+%% Main matter starts directly without a table of contents.
 \mainmatter
 
 %% Your real content!
@@ -110,6 +108,5 @@
 \bibliographystyle{plain}
 \bibliography{refs}
 
-\includepdf[pages={-}]{declaration-originality.pdf}
 
 \end{document}
