@@ -52,6 +52,6 @@ To experiment with different settings you can either edit these constants or cal
 
 ## Output
 
-The program returns a plot of the training loss the training loss at the end. The script will also compute the validation loss and print the nRMSE after training. If specified the program displays example reconstruction images.
+The program returns a plot of the training loss at the end. The script will also compute the validation loss and print the nRMSE after training. If specified the program displays example reconstruction images.
 
 ---

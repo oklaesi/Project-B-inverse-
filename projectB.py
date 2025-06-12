@@ -5,7 +5,6 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 import matplotlib.pyplot as plt
-import os
 
 #─────────────────────────────────────────────────────────────────────────────
 # Hyperparameters
