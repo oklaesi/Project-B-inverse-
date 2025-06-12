@@ -1,6 +1,6 @@
 numpy
 scipy
 matplotlib
-torch  # or tensorflow, jax
+torch 
 ipywidgets
 ipykernel
